@@ -1,0 +1,1310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Orchestra Finger Chart Generator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #f0f4ff;
+      --surface: #ffffff;
+      --blue: #3b6ef8;
+      --blue-dark: #2a5ce0;
+      --blue-light: #e8effe;
+      --text: #1a1f36;
+      --muted: #6b7280;
+      --border: #dde3f0;
+      --navy: #1a1f36;
+      --green: #2f855a;
+      --red: #c53030;
+      --red-bg: #fff5f5;
+      --chart-bg: #ffffff;
+    }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      background-image:
+        linear-gradient(var(--border) 1px, transparent 1px),
+        linear-gradient(90deg, var(--border) 1px, transparent 1px);
+      background-size: 40px 40px;
+      min-height: 100vh;
+      color: var(--text);
+    }
+
+    .shell { max-width: 1400px; margin: 0 auto; padding: 32px 32px 80px; }
+
+    /* ── Page Header ── */
+    .page-header { margin-bottom: 28px; }
+    .page-header h1 {
+      font-family: 'DM Serif Display', serif;
+      font-size: 2rem;
+      letter-spacing: -.03em;
+      color: var(--navy);
+    }
+    .page-header .sub { font-size: .85rem; color: var(--muted); margin-top: 5px; }
+
+    /* ── Card ── */
+    .card {
+      background: var(--surface);
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      overflow: hidden;
+      margin-bottom: 24px;
+      box-shadow: 0 2px 16px rgba(59,110,248,.06);
+    }
+    .card-header {
+      background: var(--navy);
+      padding: 20px 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .card-header-title {
+      font-family: 'DM Serif Display', serif;
+      color: #fff;
+      font-size: 1.15rem;
+    }
+    .card-header-sub { font-size: .73rem; color: rgba(255,255,255,.5); margin-top: 3px; }
+
+    /* ── Generator Form ── */
+    .generator-body { padding: 28px; }
+    .section-label {
+      font-size: .72rem;
+      font-weight: 700;
+      color: var(--muted);
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      margin-bottom: 16px;
+    }
+    .fields-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+      margin-bottom: 24px;
+    }
+    @media(max-width: 560px) { .fields-grid { grid-template-columns: 1fr; } }
+
+    .field-group { display: flex; flex-direction: column; gap: 5px; }
+    .field-group label {
+      font-size: .8rem;
+      font-weight: 600;
+      color: var(--text);
+    }
+    .field-group label span { font-weight: 400; color: var(--muted); }
+
+    .field-group select {
+      width: 100%;
+      padding: 9px 32px 9px 12px;
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: .88rem;
+      color: var(--text);
+      background: var(--surface);
+      cursor: pointer;
+      appearance: none;
+      -webkit-appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236b7280' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+      transition: border-color .15s;
+    }
+    .field-group select:focus { outline: none; border-color: var(--blue); }
+    .field-group select:hover { border-color: #b0bcd8; }
+
+    .generate-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding-top: 4px;
+    }
+    .err-msg { font-size: .8rem; color: var(--red); display: none; }
+
+    /* ── Buttons ── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 10px 20px;
+      border-radius: 10px;
+      border: 1.5px solid var(--border);
+      background: var(--surface);
+      font-family: 'DM Sans', sans-serif;
+      font-size: .85rem;
+      font-weight: 600;
+      color: var(--text);
+      cursor: pointer;
+      transition: all .15s;
+      white-space: nowrap;
+    }
+    .btn:hover:not(:disabled) { border-color: var(--blue); color: var(--blue); }
+    .btn:disabled { opacity: .4; cursor: not-allowed; }
+    .btn.primary {
+      background: var(--blue);
+      border-color: var(--blue);
+      color: #fff;
+      box-shadow: 0 2px 8px rgba(59,110,248,.25);
+    }
+    .btn.primary:hover:not(:disabled) { background: var(--blue-dark); border-color: var(--blue-dark); }
+    .btn svg { flex-shrink: 0; }
+
+    /* ── Chart Output ── */
+    .chart-output { display: none; border-top: 1.5px solid var(--border); }
+    .chart-output.visible { display: block; }
+
+    .chart-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 28px;
+      background: #fafbff;
+      border-bottom: 1px solid var(--border);
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .chart-title-display {
+      font-family: 'DM Serif Display', serif;
+      font-size: 1.1rem;
+      color: var(--navy);
+    }
+    .chart-subtitle-display {
+      font-size: .78rem;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+    .chart-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+    /* The printable chart canvas area */
+    .chart-canvas-wrap {
+      padding: 28px 28px 24px;
+      overflow-x: auto;
+    }
+
+    /* ── Chart printable element (exported as PNG/PDF) ── */
+    #chartPrintArea {
+      background: #fff;
+      border-radius: 12px;
+      padding: 24px 20px 20px;
+      min-width: 500px;
+      display: inline-block;
+      width: 100%;
+    }
+
+    .chart-print-header {
+      margin-bottom: 18px;
+      padding-bottom: 14px;
+      border-bottom: 2px solid var(--navy);
+    }
+    .chart-print-title {
+      font-family: 'DM Serif Display', serif;
+      font-size: 1.6rem;
+      color: var(--navy);
+      letter-spacing: -.02em;
+      line-height: 1.15;
+    }
+    .chart-print-subtitle {
+      font-size: .8rem;
+      color: var(--muted);
+      margin-top: 4px;
+      font-weight: 500;
+    }
+    .chart-print-meta {
+      display: flex;
+      gap: 12px;
+      margin-top: 8px;
+      flex-wrap: wrap;
+    }
+    .meta-chip {
+      font-size: .72rem;
+      font-weight: 600;
+      padding: 3px 10px;
+      border-radius: 20px;
+      background: var(--blue-light);
+      color: var(--blue);
+      letter-spacing: .03em;
+    }
+    .meta-chip.navy { background: var(--navy); color: #fff; }
+
+    #fbSvg { display: block; width: 100%; }
+
+    /* Legend */
+    .chart-legend {
+      display: flex;
+      gap: 18px;
+      flex-wrap: wrap;
+      margin-top: 14px;
+      padding-top: 12px;
+      border-top: 1px solid var(--border);
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: .72rem;
+      color: var(--muted);
+    }
+    .legend-dot {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      border: 1.5px solid var(--border);
+      background: var(--blue-light);
+      flex-shrink: 0;
+    }
+    .legend-dot.open {
+      background: #fffbeb;
+      border-color: #d97706;
+    }
+    .legend-dot.ext {
+      background: var(--blue-light);
+      border-color: var(--blue);
+      border-width: 2px;
+    }
+
+    /* ── Empty state ── */
+    .empty-state {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 20px;
+      text-align: center;
+      color: var(--muted);
+      gap: 10px;
+      font-size: .9rem;
+    }
+    .empty-state.visible { display: flex; }
+    .empty-icon { font-size: 2.5rem; opacity: .4; }
+
+    /* ── Loading spinner ── */
+    .spinner { display: none; }
+    .spinner.visible { display: inline-block; width: 16px; height: 16px; border: 2px solid rgba(255,255,255,.4); border-top-color: #fff; border-radius: 50%; animation: spin .6s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Note count badge ── */
+    .note-count {
+      font-size: .72rem;
+      font-weight: 600;
+      background: var(--blue-light);
+      color: var(--blue);
+      padding: 3px 9px;
+      border-radius: 20px;
+    }
+
+    /* ── Toggle ── */
+    .toggle-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: .82rem;
+      font-weight: 500;
+      color: var(--text);
+      cursor: pointer;
+      user-select: none;
+    }
+    .toggle-label input { display: none; }
+    .toggle-track {
+      width: 36px; height: 20px;
+      background: var(--border);
+      border-radius: 20px;
+      position: relative;
+      transition: background .2s;
+      flex-shrink: 0;
+    }
+    .toggle-thumb {
+      position: absolute;
+      top: 3px; left: 3px;
+      width: 14px; height: 14px;
+      background: #fff;
+      border-radius: 50%;
+      box-shadow: 0 1px 3px rgba(0,0,0,.2);
+      transition: transform .2s;
+    }
+    .toggle-label input:checked ~ .toggle-track { background: var(--blue); }
+    .toggle-label input:checked ~ .toggle-track .toggle-thumb { transform: translateX(16px); }
+
+    /* ── Toast ── */
+    .toast {
+      position: fixed;
+      bottom: 28px;
+      left: 50%;
+      transform: translateX(-50%) translateY(80px);
+      background: var(--navy);
+      color: #fff;
+      padding: 10px 20px;
+      border-radius: 10px;
+      font-size: .82rem;
+      font-weight: 500;
+      box-shadow: 0 4px 20px rgba(0,0,0,.2);
+      opacity: 0;
+      transition: all .3s ease;
+      white-space: nowrap;
+      z-index: 9999;
+    }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  </style>
+</head>
+<body>
+<div class="shell">
+
+  <div class="page-header">
+    <h1>Finger Chart Generator</h1>
+    <div class="sub">Orchestra strings — select options and generate a printable fingering chart</div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div>
+        <div class="card-header-title">Chart Settings</div>
+        <div class="card-header-sub">Instrument · Key · Range</div>
+      </div>
+    </div>
+
+    <div class="generator-body">
+      <div class="section-label">Instrument & Key</div>
+      <div class="fields-grid">
+        <div class="field-group">
+          <label>Instrument</label>
+          <select id="selInstrument">
+            <option value="violin">Violin</option>
+            <option value="viola">Viola</option>
+            <option value="cello">Cello</option>
+            <option value="bass">Bass</option>
+          </select>
+        </div>
+        <div class="field-group">
+          <label>Key Signature</label>
+          <select id="selKey">
+            <option value="C">C Major / A Minor</option>
+            <option value="G">G Major / E Minor</option>
+            <option value="D" selected>D Major / B Minor</option>
+            <option value="A">A Major / F# Minor</option>
+            <option value="E">E Major / C# Minor</option>
+            <option value="F">F Major / D Minor</option>
+            <option value="Bb">B♭ Major / G Minor</option>
+            <option value="Eb">E♭ Major / C Minor</option>
+            <option disabled>──────────────</option>
+            <option value="chrSharp">Chromatic — Sharps</option>
+            <option value="chrFlat">Chromatic — Flats</option>
+            <option disabled>──────────────</option>
+            <option value="grade5">5th Grade Notes</option>
+            <option value="grade6">6th Grade Notes</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="section-label">Range</div>
+      <div class="fields-grid">
+        <div class="field-group">
+          <label>Lowest Note</label>
+          <select id="selLow"></select>
+        </div>
+        <div class="field-group">
+          <label>Highest Note</label>
+          <select id="selHigh"></select>
+        </div>
+      </div>
+
+      <div class="generate-row">
+        <button class="btn primary" id="generateBtn" onclick="generateChart()">
+          <span class="spinner" id="btnSpinner"></span>
+          <svg width="15" height="15" viewBox="0 0 15 15" fill="none" id="btnIcon">
+            <path d="M7.5 1v13M1 7.5h13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+          Generate Chart
+        </button>
+        <label class="toggle-label">
+          <input type="checkbox" id="chkOctave" checked />
+          <span class="toggle-track"><span class="toggle-thumb"></span></span>
+          Show octave numbers
+        </label>
+        <label class="toggle-label">
+          <input type="checkbox" id="chkNoteNames" checked />
+          <span class="toggle-track"><span class="toggle-thumb"></span></span>
+          Show note names
+        </label>
+        <label class="toggle-label">
+          <input type="checkbox" id="chkFingerings" checked />
+          <span class="toggle-track"><span class="toggle-thumb"></span></span>
+          Show fingerings
+        </label>
+        <label class="toggle-label">
+          <input type="checkbox" id="chkHighPos" />
+          <span class="toggle-track"><span class="toggle-thumb"></span></span>
+          Show Highest Position on All Strings
+        </label>
+        <div class="err-msg" id="errMsg">Lowest note must be below highest note.</div>
+      </div>
+    </div>
+
+    <!-- Chart Output -->
+    <div class="chart-output" id="chartOutput">
+
+      <div class="chart-toolbar">
+        <div>
+          <div class="chart-title-display" id="toolbarTitle">—</div>
+          <div class="chart-subtitle-display" id="toolbarSub">—</div>
+        </div>
+        <div class="chart-actions">
+          <button class="btn" onclick="downloadPNG()">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1v8M4 6l3 3 3-3M1 10v1a2 2 0 002 2h8a2 2 0 002-2v-1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Download PNG
+          </button>
+          <button class="btn" onclick="downloadPDF()">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="2" y="1" width="10" height="12" rx="1.5" stroke="currentColor" stroke-width="1.5"/><path d="M4 5h6M4 7.5h6M4 10h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+            Download PDF
+          </button>
+        </div>
+      </div>
+
+      <div class="chart-canvas-wrap">
+        <div id="chartPrintArea">
+          <div class="chart-print-header">
+            <div class="chart-print-title" id="printTitle">—</div>
+          </div>
+          <svg id="fbSvg"></svg>
+        <div id="staffDiv" style="display:none; margin-top:16px;"></div>
+
+        </div>
+      </div>
+    </div>
+
+  </div><!-- .card -->
+
+</div><!-- .shell -->
+
+<div class="toast" id="toast"></div>
+
+<!-- html2canvas + jsPDF for export -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/vexflow@4.2.2/build/cjs/vexflow.js"></script>
+
+<script>
+// ══════════════════════════════════════════════════════════════════════════════
+// MUSIC THEORY
+// ══════════════════════════════════════════════════════════════════════════════
+
+const SHARP_NAMES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+const FLAT_NAMES  = ['C','Db','D','Eb','E','F','Gb','G','Ab','A','Bb','B'];
+const GRADE6_NAMES = ['C','C#','D','Eb','E','F','F#','G','G#','A','Bb','B'];
+const MAJOR_INTERVALS = [0,2,4,5,7,9,11];
+
+const KEYS = {
+  C:  { label:'C Major', root:0,  flatKey:false },
+  G:  { label:'G Major', root:7,  flatKey:false },
+  D:  { label:'D Major', root:2,  flatKey:false },
+  A:  { label:'A Major', root:9,  flatKey:false },
+  E:  { label:'E Major', root:4,  flatKey:false },
+  F:  { label:'F Major', root:5,  flatKey:true  },
+  Bb: { label:'B♭ Major', root:10, flatKey:true  },
+  Eb: { label:'E♭ Major', root:3,  flatKey:true  },
+  chrSharp: { label:'Chromatic (Sharps)', root:0, flatKey:false, chromatic:true },
+  chrFlat:  { label:'Chromatic (Flats)',  root:0, flatKey:true,  chromatic:true },
+  grade5:   { label:'5th Grade Notes',   root:0, flatKey:false, grade5:true },
+  grade6:   { label:'6th Grade Notes',   root:0, flatKey:false, grade6:true, chromatic:true },
+};
+
+const INSTRUMENTS = {
+  violin: {
+    label: 'Violin',
+    strings: [
+      { name:'E', openMidi:76 },
+      { name:'A', openMidi:69 },
+      { name:'D', openMidi:62 },
+      { name:'G', openMidi:55 },
+    ],
+    minMidi: 55,
+    maxMidi: 88,
+  },
+  viola: {
+    label: 'Viola',
+    strings: [
+      { name:'A', openMidi:69 },
+      { name:'D', openMidi:62 },
+      { name:'G', openMidi:55 },
+      { name:'C', openMidi:48 },
+    ],
+    minMidi: 48,
+    maxMidi: 81,
+  },
+  cello: {
+    label: 'Cello',
+    strings: [
+      { name:'A', openMidi:57 },
+      { name:'D', openMidi:50 },
+      { name:'G', openMidi:43 },
+      { name:'C', openMidi:36 },
+    ],
+    minMidi: 36,
+    maxMidi: 74,
+  },
+  bass: {
+    label: 'Bass',
+    strings: [
+      { name:'G', openMidi:43 },
+      { name:'D', openMidi:38 },
+      { name:'A', openMidi:33 },
+      { name:'E', openMidi:28 },
+    ],
+    minMidi: 28,
+    maxMidi: 62,
+  },
+};
+
+// ── 5th Grade custom note sets (as MIDI arrays, one per instrument) ──────────
+const GRADE5_NOTES = {
+  violin: [55,57,59,60,62,64,65,66,67,69,71,72,73,74,76,77,78,79,80,81],
+  viola:  [48,50,52,53,55,57,59,60,62,64,65,66,67,69,71,72,73,74],
+  cello:  [36,38,40,41,43,45,47,48,50,52,53,54,55,57,59,60,61,62],
+  bass:   [28,30,31,32,33,35,36,37,38,40,41,42,43,45,47,48,49,50],
+};
+
+function keyPitchClasses(keyId) {
+  if (KEYS[keyId].chromatic) return [0,1,2,3,4,5,6,7,8,9,10,11];
+  const root = KEYS[keyId].root;
+  return MAJOR_INTERVALS.map(i => (root + i) % 12);
+}
+
+function midiToName(midi, keyId) {
+  const pc  = ((midi % 12) + 12) % 12;
+  const oct = Math.floor(midi / 12) - 1;
+  if (KEYS[keyId].grade6) return GRADE6_NAMES[pc] + oct;
+  const useSharps = !KEYS[keyId].flatKey;
+  const name = useSharps ? SHARP_NAMES[pc] : FLAT_NAMES[pc];
+  return name + oct;
+}
+
+function assignString(midi, instrId, keyId) {
+  const instr    = INSTRUMENTS[instrId];
+  const isBass   = instrId === 'bass';
+  const isViolin = instrId === 'violin';
+  const isViola  = instrId === 'viola';
+  const isCello  = instrId === 'cello';
+  const isExtendedRange = KEYS[keyId].grade5 || KEYS[keyId].grade6;
+
+  // First priority: exact open string match (semi === 0)
+  for (const str of instr.strings) {
+    if (midi === str.openMidi) return { str: str.name, semi: 0 };
+  }
+
+  // Then assign to the lowest string that can finger it within range
+  const strsLow = [...instr.strings].reverse();
+  for (const str of strsLow) {
+    const semi = midi - str.openMidi;
+    if (semi < 0) continue;
+    let maxSemi;
+    if (isViolin && str.name === 'E') {
+      maxSemi = 10; // extended 2nd/3rd-position reach on the E string, up to D6
+    } else if (isCello && str.name === 'A') {
+      maxSemi = 12; // extended reach on the A string, up to A4 (octave above open)
+    } else if (isViola && str.name === 'A') {
+      maxSemi = 12; // extended reach on the A string, up to A5 (octave above open)
+    } else if (isBass && str.name === 'G') {
+      maxSemi = 7; // extended reach on the G string, up to D3 (always available)
+    } else if (isBass && str.name !== 'G') {
+      maxSemi = 4;
+    } else {
+      maxSemi = (isExtendedRange && str.name === 'G') ? 7 : 6;
+    }
+    if (semi <= maxSemi) return { str: str.name, semi };
+  }
+  return null;
+}
+
+function buildScaleNotes(keyId, lowMidi, highMidi, instrId) {
+  const instr = INSTRUMENTS[instrId];
+  const notes = [];
+
+  if (KEYS[keyId].grade5) {
+    const midiSet = GRADE5_NOTES[instrId];
+    for (const m of midiSet) {
+      if (m < lowMidi || m > highMidi) continue;
+      const chosen = assignString(m, instrId, keyId);
+      if (!chosen) continue;
+      notes.push({ midi: m, label: midiToName(m, keyId), str: chosen.str, semi: chosen.semi });
+    }
+    return notes;
+  }
+
+  const pcs = keyPitchClasses(keyId);
+  for (let m = lowMidi; m <= highMidi; m++) {
+    const pc = ((m % 12) + 12) % 12;
+    if (!pcs.includes(pc)) continue;
+    const chosen = assignString(m, instrId, keyId);
+    if (!chosen) continue;
+    notes.push({ midi: m, label: midiToName(m, keyId), str: chosen.str, semi: chosen.semi });
+  }
+  return notes;
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// RANGE DROPDOWNS
+// ══════════════════════════════════════════════════════════════════════════════
+
+function populateRangeDropdowns() {
+  const instrId = document.getElementById('selInstrument').value;
+  const keyId   = document.getElementById('selKey').value;
+  const instr   = INSTRUMENTS[instrId];
+  const low  = document.getElementById('selLow');
+  const high = document.getElementById('selHigh');
+
+  let notes = [];
+
+  if (KEYS[keyId].grade5) {
+    const midiSet = GRADE5_NOTES[instrId];
+    notes = midiSet.map(m => ({ midi: m, label: midiToName(m, keyId) }));
+  } else {
+    const pcs    = keyPitchClasses(keyId);
+    const isBass = instrId === 'bass';
+    for (let m = instr.minMidi; m <= instr.maxMidi; m++) {
+      const pc = ((m % 12) + 12) % 12;
+      if (!pcs.includes(pc)) continue;
+      const chosen = assignString(m, instrId, keyId);
+      if (!chosen) continue;
+      notes.push({ midi: m, label: midiToName(m, keyId) });
+    }
+  }
+
+  const desc = [...notes].reverse();
+  low.innerHTML  = desc.map(n => `<option value="${n.midi}">${n.label}</option>`).join('');
+  high.innerHTML = desc.map(n => `<option value="${n.midi}">${n.label}</option>`).join('');
+
+  if (KEYS[keyId].grade5) {
+    // Default: full range for grade5
+    low.value  = notes[0]?.midi;
+    high.value = notes[notes.length - 1]?.midi;
+  } else {
+    const root = KEYS[keyId].root;
+    const rootNotes = notes.filter(n => ((n.midi % 12 + 12) % 12) === root);
+    if (rootNotes.length >= 2) {
+      low.value  = rootNotes[0].midi;
+      high.value = rootNotes[1].midi;
+    } else {
+      low.value  = notes[0]?.midi ?? instr.minMidi;
+      high.value = notes[notes.length - 1]?.midi ?? instr.maxMidi;
+    }
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// FINGERBOARD SVG
+// ══════════════════════════════════════════════════════════════════════════════
+
+const R_BASE    = 35;
+const LABEL_X   = 55;
+const OPEN_X    = 78;
+const NUT_X     = OPEN_X + R_BASE + 18;
+
+const nutColor    = '#000000';
+const labelColor  = '#000000';
+const stringColor = '#555555';
+const noteBg      = '#ffffff';
+const noteStroke  = '#000000';
+const noteTxt     = '#000000';
+
+const ns = 'http://www.w3.org/2000/svg';
+function svgEl(tag, attrs) {
+  const e = document.createElementNS(ns, tag);
+  for (const [k,v] of Object.entries(attrs)) e.setAttribute(k, v);
+  return e;
+}
+function svgTxt(content, x, y, attrs) {
+  const e = svgEl('text', Object.assign({x, y}, attrs));
+  e.textContent = content;
+  return e;
+}
+
+let currentScaleNotes = [];
+
+// Semi threshold, per instrument, above which a note on the top string counts as
+// "higher position" (i.e. requires a shift, not just an extended-reach finger) —
+// these are the notes eligible to be doubled down onto the lower strings.
+const HIGH_POS_THRESHOLD = { violin: 7, viola: 7, cello: 7, bass: 5 };
+
+function buildFingerboard(instrId, scaleNotes, showOctave, showNoteNames, showFingerings, showHighPos, keyId) {
+  const svg   = document.getElementById('fbSvg');
+  const instr = INSTRUMENTS[instrId];
+  const activeStrings = instr.strings;
+
+  // "Show Highest Position on All Strings" — the topmost string's higher-position
+  // notes (beyond HIGH_POS_THRESHOLD) are re-fingered on each lower string at the
+  // same hand position. Because adjacent strings on a given instrument are always
+  // a constant interval apart (a 5th for violin/viola/cello, a 4th for bass), the
+  // same physical hand position lands on the SAME semi offset on every string —
+  // so each doubled note just reuses the original note's semi, on a new string,
+  // at a transposed pitch.
+  let renderNotes = scaleNotes;
+  if (showHighPos && activeStrings.length > 1) {
+    const topStr    = activeStrings[0];
+    const interval   = topStr.openMidi - activeStrings[1].openMidi;
+    const threshold  = HIGH_POS_THRESHOLD[instrId] ?? Infinity;
+    const pcs        = keyPitchClasses(keyId);
+    const topNotes   = scaleNotes.filter(n => n.str === topStr.name && n.semi >= threshold);
+    const doubled = [];
+    topNotes.forEach(note => {
+      let midi = note.midi;
+      for (let i = 1; i < activeStrings.length; i++) {
+        midi -= interval;
+        const str  = activeStrings[i];
+        const semi = midi - str.openMidi;
+        if (semi < 0) break;
+        const pc = ((midi % 12) + 12) % 12;
+        if (!pcs.includes(pc)) continue; // only double notes that belong to the selected key
+        doubled.push({ midi, label: midiToName(midi, keyId), str: str.name, semi });
+      }
+    });
+    renderNotes = scaleNotes.concat(doubled);
+  }
+
+  const maxSemi = renderNotes.reduce((m, n) => Math.max(m, n.semi), 0);
+  const MAX_SEMI = Math.max(maxSemi, 3);
+
+  // Measure available container width and compute HALF dynamically
+  const containerW = svg.parentElement.clientWidth || 900;
+  const usedLeft   = NUT_X + R_BASE + 18; // space before first fingered note
+  const usedRight  = R_BASE + 24;          // padding after last note
+  const available  = containerW - usedLeft - usedRight;
+  const HALF       = Math.max(R_BASE * 3, Math.floor(available / MAX_SEMI));
+  const R          = Math.min(R_BASE, Math.floor(HALF * 0.35));
+  const FRET1_X    = NUT_X + HALF;
+
+  function semiX(semi) {
+    return semi === 0 ? OPEN_X : FRET1_X + (semi - 1) * HALF;
+  }
+
+  const STRING_SPACING = Math.max(75, R * 2 + 10);
+  activeStrings.forEach((s, i) => { s._y = 72 + i * STRING_SPACING; });
+
+  // Fan: spread strings away from nut. Top two angle up, bottom two angle down.
+  // _yStart = y at nut, _yEnd = y at LINE_END (computed after LINE_END known)
+  const n = activeStrings.length;
+  // fan offsets at far end in pixels — outer strings fan most
+  const fanOffsets = activeStrings.map((s, i) => {
+    const mid = (n - 1) / 2;
+    const dist = i - mid; // negative = top, positive = bottom
+    return dist * 18; // 18px per "step" from center
+  });
+  // Shrink nut vertically: nut only spans inner portion of string spread
+  const nutShrink = Math.abs(fanOffsets[0]) * 0.5;
+
+  const LINE_END  = FRET1_X + MAX_SEMI * HALF + R + 24;
+
+  activeStrings.forEach((s, i) => {
+    s._yStart = s._y; // y at nut (unchanged)
+    s._yEnd   = s._y + fanOffsets[i]; // y at far right
+  });
+
+  const NUT_TOP   = activeStrings[0]._yStart - 16;
+  const NUT_BOT   = activeStrings[n-1]._yStart + 16;
+  const LABEL_TOP = activeStrings[0]._yStart - 80;
+  // SVG_W matches whichever is larger: the container's own width, or the actual
+  // width the notes need (LINE_END). When notes need more room than the container
+  // is wide (e.g. many semitone columns for an extended range), the viewBox grows
+  // to fit them and the `width: 100%` CSS below scales the whole chart down
+  // uniformly to fit — rather than clipping the overflow.
+  const SVG_W     = Math.max(containerW, LINE_END + 20);
+  // SVG height must accommodate the fanned bottom string
+  const SVG_H     = Math.max(...activeStrings.map(s => s._yEnd)) + 50;
+  const LEFT_PAD  = 90; // room for the "Open Strings" label to the left of the chart
+
+  // Helper: interpolated y for a string at a given x position
+  function stringY(str, x) {
+    const t = (x - NUT_X) / (LINE_END - NUT_X);
+    return str._yStart + t * (str._yEnd - str._yStart);
+  }
+
+  svg.innerHTML = '';
+  svg.setAttribute('viewBox', `${-LEFT_PAD} ${LABEL_TOP} ${SVG_W + LEFT_PAD} ${SVG_H - LABEL_TOP}`);
+  svg.style.width  = '100%';
+  svg.style.height = 'auto';
+
+  // Light shading across the fingerboard area — from the nut to the string ends,
+  // following the fan between the top and bottom strings. Drawn first so the
+  // nut, strings, tape lines, and (white-filled) note circles all layer on top of it.
+  svg.appendChild(svgEl('polygon', {
+    points: `${NUT_X},${activeStrings[0]._yStart} ${LINE_END},${activeStrings[0]._yEnd} `
+          + `${LINE_END},${activeStrings[n-1]._yEnd} ${NUT_X},${activeStrings[n-1]._yStart}`,
+    fill: '#eef2fb'
+  }));
+
+  // "Open Strings" label — rotated 90° counter-clockwise, positioned close to the
+  // open-string circles at LABEL_X, centered next to the chart
+  const openLabelY = (activeStrings[0]._yStart + activeStrings[n-1]._yStart) / 2;
+  const openLabelX = LABEL_X - R - 20;
+  svg.appendChild(svgTxt('Open Strings', openLabelX, openLabelY, {
+    'text-anchor': 'middle', 'dominant-baseline': 'middle',
+    fill: labelColor, 'font-family': 'DM Sans, sans-serif',
+    'font-size': '16', 'font-weight': '700', 'letter-spacing': '.02em',
+    'transform': `rotate(-90 ${openLabelX} ${openLabelY})`
+  }));
+
+  // Nut — spans only between the fanned string start points, slightly inset
+  svg.appendChild(svgEl('rect', {
+    x: NUT_X - 5, y: NUT_TOP, width: 9, height: NUT_BOT - NUT_TOP,
+    rx: 2, fill: nutColor
+  }));
+
+  // ── Tape lines & finger number labels ──────────────────────────────────────
+  // Tape lines sit BETWEEN note columns (midpoint of adjacent semitone x positions).
+  // violin/viola: 3 tapes after semis 1, 3, 4
+  // cello:        3 tapes after semis 1, 3, 4
+  // bass:         through semis 1, 4
+
+  // Tape line semitone columns — lines pass directly through these dot positions.
+  // violin/viola: through semis 1, 2, 3  (whole step, maj 2nd, maj 3rd = finger tape spots)
+  // cello:        through semis 1, 3, 4
+  // bass:         through semis 1, 4
+  // Tape positions are intervals from the open string, not sequential half-steps.
+  // violin/viola: tape 1 = whole step (semi 2), tape 2 = major 3rd (semi 4), tape 3 = P4 (semi 5)
+  // cello:        tape 1 = whole step (semi 2), tape 2 = major 3rd (semi 4), tape 3 = P4 (semi 5)
+  //               (same physical intervals — cello just uses fingers 1,3,4 labeling convention)
+  // bass:         tape 1 = whole step (semi 2), tape 2 = P4 (semi 5)
+  //               (bass uses half-position fingering: 1 and 4 span a P4)
+  const tapeConfig = {
+    violin: { tapeSemis: [2,4,5,7], labels: ['1','2','3','4'] },
+    viola:  { tapeSemis: [2,4,5,7], labels: ['1','2','3','4'] },
+    cello:  { tapeSemis: [2,4,5],   labels: ['1','3','4'] },
+    bass:   { tapeSemis: [2,4,7],   labels: ['1','4','Shift 4'] },
+  };
+  const { tapeSemis, labels: tapeLabels } = tapeConfig[instrId];
+
+  // ── Draw order: strings → tape lines (behind dots) → dots → labels ──────────
+
+  // 1. String lines and string name labels (fanned)
+  // If the string has an open note in scaleNotes, circle the label instead of drawing a separate dot
+  activeStrings.forEach(str => {
+    svg.appendChild(svgEl('line', {
+      x1: NUT_X, y1: str._yStart, x2: LINE_END, y2: str._yEnd,
+      stroke: stringColor, 'stroke-width': '1.8'
+    }));
+
+    const openNote = scaleNotes.find(n => n.str === str.name && n.semi === 0);
+    if (openNote) {
+      // Circle around the string name label
+      svg.appendChild(svgEl('circle', {
+        cx: LABEL_X, cy: str._yStart, r: R,
+        fill: '#ffffff', stroke: noteStroke, 'stroke-width': '2'
+      }));
+      const lbl = showNoteNames ? (showOctave ? openNote.label : openNote.label.replace(/\d+$/, '')) : str.name;
+      const isLong = lbl.length > 3;
+      const isMed  = lbl.length === 3;
+      const fs     = isLong ? '16' : isMed ? '19' : '20';
+      svg.appendChild(svgTxt(lbl, LABEL_X, str._yStart + Math.floor(parseInt(fs) * 0.38), {
+        'text-anchor': 'middle', fill: noteTxt,
+        'font-family': 'DM Sans, sans-serif', 'font-size': fs, 'font-weight': '800'
+      }));
+    } else {
+      svg.appendChild(svgTxt(str.name, LABEL_X, str._yStart + 9, {
+        'text-anchor': 'middle', fill: labelColor,
+        'font-family': 'DM Sans, sans-serif', 'font-size': '26', 'font-weight': '700'
+      }));
+    }
+  });
+
+  // 2. Tape lines — vertical at each semi x, spanning from top to bottom string y at that x
+  tapeSemis.forEach(semi => {
+    const tx  = semiX(semi);
+    const y1  = stringY(activeStrings[0],   tx);
+    const y2  = stringY(activeStrings[n-1], tx);
+    svg.appendChild(svgEl('line', {
+      x1: tx, y1, x2: tx, y2,
+      stroke: '#000000', 'stroke-width': '5'
+    }));
+  });
+
+  // 3. Note dots — drawn on top of tape lines so circles cover the line
+  // Open strings (semi===0) are handled as circled string name labels above
+  activeStrings.forEach(str => {
+    renderNotes.filter(n => n.str === str.name && n.semi !== 0).forEach(note => {
+      const cx     = semiX(note.semi);
+      const cy     = stringY(str, cx);
+      const onTape = tapeSemis.includes(note.semi);
+      const sw     = onTape ? '3' : '2';
+      const rad    = onTape ? R : R * 0.85;
+
+      const circ = svgEl('circle', { cx, cy, r: rad, fill: '#ffffff', stroke: noteStroke, 'stroke-width': sw });
+      svg.appendChild(circ);
+
+      if (showNoteNames) {
+        const lbl    = showOctave ? note.label : note.label.replace(/\d+$/, '');
+        const isLong = lbl.length > 3;
+        const isMed  = lbl.length === 3;
+        const fs     = isLong ? '16' : isMed ? '19' : '20';
+        const dy     = isLong ? 4 : isMed ? 4 : 5;
+        const txt = svgTxt(lbl, cx, cy + dy, {
+          'text-anchor': 'middle', 'font-size': fs, 'font-weight': '800',
+          fill: noteTxt, 'font-family': 'DM Sans, sans-serif',
+          'style': 'pointer-events:none; letter-spacing:-.01em'
+        });
+        svg.appendChild(txt);
+      }
+    });
+  });
+
+  // 4. Column labels above the chart — tape semis get finger numbers,
+  //    non-tape semis get contextual labels if they appear in the current notes.
+  //
+  //    Full semi → label map per instrument:
+  //    semi 0 = open (handled by circled string name)
+  //    violin/viola: 1=low1, 2=1, 3=low2, 4=2, 5=3, 6=x3
+  //    cello:        1=low1, 2=1, 3=2,    4=3, 5=4, 6=x4
+  //    bass:         1=low1, 2=1, 3=2,    4=4, 5=x4
+  const colLabelMap = {
+    violin: { 1:'Low 1', 2:'1', 3:'Low 2', 4:'2', 5:'3', 6:'x3', 7:'4', 8:'x4', 9:'3 pos. 3', 10:'3 pos. 4' },
+    viola:  { 1:'Low 1', 2:'1', 3:'Low 2', 4:'2', 5:'3', 6:'x3', 7:'4', 8:'x4', 9:'3 pos. 3', 10:'3 pos. 4', 11:'Shift 3', 12:'Shift 4' },
+    cello:  { 1:'Low 1', 2:'1', 3:'2',     4:'3', 5:'4', 6:'x4', 7:'4 pos. 1', 8:'4 pos. 2', 9:'4 pos. 3', 10:'4 pos. 4', 11:'Shift 5', 12:'Shift 6' },
+    bass:   { 1:'Low 1', 2:'1', 3:'2',     4:'4', 5:'Shift 1', 6:'Shift 2', 7:'Shift 4' },
+  };
+  const labelMap = colLabelMap[instrId];
+
+  // Collect all unique semis that appear in the current notes (excluding open)
+  const activeSemis = [...new Set(renderNotes.filter(n => n.semi > 0).map(n => n.semi))].sort((a,b) => a-b);
+
+  activeSemis.forEach(semi => {
+    if (!showFingerings) return;
+    const colLabel = labelMap[semi];
+    if (!colLabel) return;
+    const tx     = semiX(semi);
+    const labelY = stringY(activeStrings[0], tx) - R - 8;
+    const isTape = tapeSemis.includes(semi);
+    svg.appendChild(svgTxt(colLabel, tx, labelY, {
+      'text-anchor': 'middle',
+      'font-size': isTape ? '20' : '16',
+      'font-weight': isTape ? '800' : '600',
+      fill: '#000000', 'font-family': 'DM Sans, sans-serif'
+    }));
+  });
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// STAFF RENDERER
+// ══════════════════════════════════════════════════════════════════════════════
+
+// Note Y positions relative to staff bottom line (staffY[4]).
+// Each diatonic step = LS/2 upward. Values are offsets FROM staffBottom.
+// Positive = below staff, negative = above staff.
+function buildStaff(instrId, scaleNotes, keyId, showOctave, showNoteNames, showFingerings) {
+  const div = document.getElementById('staffDiv');
+  if (!scaleNotes.length) { div.style.display = 'none'; return; }
+
+  const { Renderer, Stave, StaveNote, Voice, Formatter, Accidental, Annotation } = Vex.Flow;
+
+  // Clear previous render
+  div.innerHTML = '';
+  div.style.display = 'block';
+
+  // Sizing: match fingerboard width
+  const fbSvg = document.getElementById('fbSvg');
+  const W = (fbSvg.clientWidth || div.parentElement.clientWidth || 1200);
+  const H = 220;
+
+  const renderer = new Renderer(div, Renderer.Backends.SVG);
+  renderer.resize(W, H);
+  const ctx = renderer.getContext();
+  ctx.setFont('serif', 12);
+
+  // ── Clef and key sig ──────────────────────────────────────────────────────
+  const clef = instrId === 'viola' ? 'alto'
+             : (instrId === 'cello' || instrId === 'bass') ? 'bass'
+             : 'treble';
+
+  const keyData = KEYS[keyId];
+  const noKeySig = keyData.chromatic || keyData.grade5;
+  // VexFlow key sig format: 'C', 'G', 'D', 'A', 'E', 'F', 'Bb', 'Eb'
+  const vfKeySig = noKeySig ? 'C' : (keyId === 'Bb' ? 'Bb' : keyId === 'Eb' ? 'Eb' : keyId);
+
+  // ── Convert scaleNotes to VexFlow note keys ───────────────────────────────
+  // VexFlow format: "d/4", "f#/4", "bb/3"
+  // Bass is transposing — display one octave higher than sounding pitch
+  const bassTranspose = instrId === 'bass';
+
+  // Deduplicate by midi, sort ascending
+  const unique = [...new Map(scaleNotes.map(n => [n.midi, n])).values()]
+                   .sort((a, b) => a.midi - b.midi);
+
+  // Key sig accidentals already covered (so we don't add redundant ones)
+  const keySigSharps = { G:['f'], D:['f','c'], A:['f','c','g'], E:['f','c','g','d'] };
+  const keySigFlats  = { F:['b'], Bb:['b','e'], Eb:['b','e','a'] };
+  const coveredSharps = new Set(noKeySig ? [] : (keySigSharps[keyId] || []));
+  const coveredFlats  = new Set(noKeySig ? [] : (keySigFlats[keyId]  || []));
+
+  function midiToVexKey(midi, label) {
+    // Transpose bass up one octave for display
+    const displayMidi = bassTranspose ? midi + 12 : midi;
+    const pc = ((displayMidi % 12) + 12) % 12;
+    const oct = Math.floor(displayMidi / 12) - 1;
+    const sharpNames = ['c','c#','d','d#','e','f','f#','g','g#','a','a#','b'];
+    const flatNames  = ['c','db','d','eb','e','f','gb','g','ab','a','bb','b'];
+    const grade6Names = ['c','c#','d','eb','e','f','f#','g','g#','a','bb','b'];
+    const name = keyData.grade6 ? grade6Names[pc] : (!keyData.flatKey ? sharpNames[pc] : flatNames[pc]);
+    return `${name}/${oct}`;
+  }
+
+  function needsAccidental(vfKey) {
+    const letter = vfKey.split('/')[0]; // e.g. "f#" or "bb"
+    if (letter.includes('#') && coveredSharps.has(letter.replace('#',''))) return null;
+    if (letter.includes('b') && !letter.endsWith('/') && coveredFlats.has(letter.replace('b',''))) return null;
+    if (letter.includes('#')) return '#';
+    if (letter.length > 1 && letter[1] === 'b') return 'b';
+    // Natural — check if this note was sharpened/flatted by key sig
+    if (coveredSharps.has(letter)) return 'n';
+    if (coveredFlats.has(letter)) return 'n';
+    return null;
+  }
+
+  // Build StaveNote objects — one note per unique midi
+  const staveNotes = unique.map(note => {
+    const vfKey = midiToVexKey(note.midi, note.label);
+    const sn = new StaveNote({ keys: [vfKey], duration: 'q', clef });
+    // Hide stem — Stem.hide is the correct VexFlow 4 API
+    const stem = sn.getStem();
+    if (stem) stem.hide = true;
+
+    // Add accidental if needed
+    const acc = needsAccidental(vfKey);
+    if (acc) sn.addModifier(new Accidental(acc), 0);
+
+    // Finger number annotation above
+    const colLabelMap = {
+      violin: { 0:'0', 1:'L1', 2:'1', 3:'L2', 4:'2', 5:'3', 6:'x3', 7:'4', 8:'x4', 9:'3 pos. 3', 10:'3 pos. 4' },
+      viola:  { 0:'0', 1:'L1', 2:'1', 3:'L2', 4:'2', 5:'3', 6:'x3', 7:'4', 8:'x4', 9:'3 pos. 3', 10:'3 pos. 4', 11:'Shift 3', 12:'Shift 4' },
+      cello:  { 0:'0', 1:'L1', 2:'1', 3:'2',     4:'3', 5:'4', 6:'x4', 7:'4 pos. 1', 8:'4 pos. 2', 9:'4 pos. 3', 10:'4 pos. 4', 11:'Shift 5', 12:'Shift 6' },
+      bass:   { 0:'0', 1:'L1', 2:'1', 3:'2',     4:'4', 5:'Shift 1', 6:'Shift 2', 7:'Shift 4' },
+    };
+    const fingerLbl = (colLabelMap[instrId] || {})[note.semi] ?? '';
+    if (fingerLbl && showFingerings) {
+      const ann = new Annotation(fingerLbl)
+        .setFont('DM Sans, sans-serif', 11, 'bold')
+        .setVerticalJustification(Annotation.VerticalJustify.TOP);
+      sn.addModifier(ann, 0);
+    }
+
+    // Note name annotation below
+    if (showNoteNames) {
+      const noteName = showOctave ? note.label : note.label.replace(/\d+$/, '');
+      const nameAnn = new Annotation(noteName)
+        .setFont('DM Sans, sans-serif', 11, 'bold')
+        .setVerticalJustification(Annotation.VerticalJustify.BOTTOM);
+      sn.addModifier(nameAnn, 0);
+    }
+
+    return sn;
+  });
+
+  // ── Draw stave ────────────────────────────────────────────────────────────
+  const MARGIN = 20;
+  const stave = new Stave(MARGIN, 40, W - MARGIN * 2);
+  stave.addClef(clef);
+  if (vfKeySig !== 'C') stave.addKeySignature(vfKeySig);
+  stave.setContext(ctx).draw();
+
+  // Make stave lines and clef black
+  ctx.setStrokeStyle('#000000');
+  ctx.setFillStyle('#000000');
+
+  // ── Format and draw notes ──────────────────────────────────────────────────
+  const voice = new Voice({ num_beats: unique.length, beat_value: 4 })
+    .setStrict(false)
+    .addTickables(staveNotes);
+
+  new Formatter()
+    .joinVoices([voice])
+    .format([voice], W - MARGIN * 2 - stave.getNoteStartX() + MARGIN - 20);
+
+  voice.draw(ctx, stave);
+
+  // ── Group consecutive notes by string (for divider lines + "X String" labels) ──
+  const stringGroups = [];
+  let gStart = 0;
+  for (let i = 1; i <= unique.length; i++) {
+    if (i === unique.length || unique[i].str !== unique[i - 1].str) {
+      stringGroups.push({ str: unique[gStart].str, startIdx: gStart, endIdx: i - 1 });
+      gStart = i;
+    }
+  }
+
+  const staveTopY    = stave.getYForLine(0);
+  const staveBottomY = stave.getYForLine(4);
+  const svgRootEl    = div.querySelector('svg');
+
+  // Vertical divider lines at each string crossing
+  for (let g = 1; g < stringGroups.length; g++) {
+    const prevX = staveNotes[stringGroups[g - 1].endIdx].getAbsoluteX();
+    const currX = staveNotes[stringGroups[g].startIdx].getAbsoluteX();
+    const dividerX = (prevX + currX) / 2;
+    svgRootEl.appendChild(svgEl('line', {
+      x1: dividerX, y1: staveTopY, x2: dividerX, y2: staveBottomY,
+      stroke: '#000000', 'stroke-width': '1.5'
+    }));
+  }
+
+  // Force all SVG elements black (override VexFlow's default colour)
+  const svgRoot = div.querySelector('svg');
+  if (svgRoot) {
+    svgRoot.style.width = '100%';
+    svgRoot.querySelectorAll('path, rect, text, line, circle').forEach(el => {
+      el.style.fill = el.style.fill === 'none' ? 'none' : '#000000';
+      el.style.stroke = el.getAttribute('stroke') ? '#000000' : '';
+    });
+  }
+
+  // "X String" label, centered under each group of notes.
+  const STRING_LABEL_Y = staveBottomY + 66; // extra buffer below the note-name annotations
+  stringGroups.forEach(grp => {
+    const startX = staveNotes[grp.startIdx].getAbsoluteX();
+    const endX   = staveNotes[grp.endIdx].getAbsoluteX();
+    const centerX = (startX + endX) / 2;
+
+    const labelTxt = svgTxt(`${grp.str} String`, centerX, STRING_LABEL_Y, {
+      'text-anchor': 'middle',
+      'font-family': 'DM Sans, sans-serif',
+      'font-size': '17', 'font-weight': '800', 'letter-spacing': '.03em'
+    });
+    labelTxt.style.fill = '#000000';
+    svgRootEl.appendChild(labelTxt);
+  });
+}
+
+
+function generateChart() {
+  const err    = document.getElementById('errMsg');
+  const low    = parseInt(document.getElementById('selLow').value);
+  const high   = parseInt(document.getElementById('selHigh').value);
+  const instrId = document.getElementById('selInstrument').value;
+  const keyId   = document.getElementById('selKey').value;
+
+  if (low >= high) { err.style.display = 'block'; return; }
+  err.style.display = 'none';
+
+  const instr  = INSTRUMENTS[instrId];
+  const key    = KEYS[keyId];
+  const lowLbl = midiToName(low, keyId);
+  const hiLbl  = midiToName(high, keyId);
+
+  currentScaleNotes = buildScaleNotes(keyId, low, high, instrId);
+
+  if (currentScaleNotes.length === 0) {
+    showToast('No notes found in that range for this instrument/key.');
+    return;
+  }
+
+  // Build fingerboard
+  const showOctave     = document.getElementById('chkOctave').checked;
+  const showNoteNames  = document.getElementById('chkNoteNames').checked;
+  const showFingerings = document.getElementById('chkFingerings').checked;
+  const showHighPos    = document.getElementById('chkHighPos').checked;
+  buildFingerboard(instrId, currentScaleNotes, showOctave, showNoteNames, showFingerings, showHighPos, keyId);
+  buildStaff(instrId, currentScaleNotes, keyId, showOctave, showNoteNames, showFingerings);
+
+  // Populate titles
+  const chartTitle    = `${instr.label} — ${key.label}`;
+  const chartSubtitle = `Scale Fingering Chart · ${lowLbl} to ${hiLbl}`;
+
+  document.getElementById('toolbarTitle').textContent = chartTitle;
+  document.getElementById('toolbarSub').textContent   = chartSubtitle;
+  document.getElementById('printTitle').textContent   = chartTitle;
+
+  // Show output
+  document.getElementById('chartOutput').classList.add('visible');
+  document.getElementById('chartOutput').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// EXPORT
+// ══════════════════════════════════════════════════════════════════════════════
+
+function getFilename(ext) {
+  const instr  = document.getElementById('selInstrument').value;
+  const keyId  = document.getElementById('selKey').value;
+  const key    = KEYS[keyId];
+  const instrL = INSTRUMENTS[instr].label;
+  const safe   = (s) => s.replace(/[^a-z0-9]/gi, '_').replace(/_+/g, '_');
+  return `${safe(instrL)}_${safe(key.label)}_FingerChart.${ext}`;
+}
+
+async function downloadPNG() {
+  const el = document.getElementById('chartPrintArea');
+  showToast('Generating PNG…');
+  try {
+    const canvas = await html2canvas(el, {
+      scale: 3,
+      backgroundColor: '#ffffff',
+      useCORS: true,
+      logging: false,
+    });
+    const a = document.createElement('a');
+    a.href     = canvas.toDataURL('image/png');
+    a.download = getFilename('png');
+    a.click();
+    showToast('PNG downloaded!');
+  } catch (e) {
+    showToast('PNG export failed — try again.');
+  }
+}
+
+async function downloadPDF() {
+  const el = document.getElementById('chartPrintArea');
+  showToast('Generating PDF…');
+  try {
+    const { jsPDF } = window.jspdf;
+    const canvas = await html2canvas(el, {
+      scale: 3,
+      backgroundColor: '#ffffff',
+      useCORS: true,
+      logging: false,
+    });
+    const imgData = canvas.toDataURL('image/png');
+    const margin = 10; // mm each side
+    const pdf    = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'letter' });
+    const pageW  = 279; // letter landscape width mm
+    const pageH  = 216; // letter landscape height mm
+    const usableW = pageW - margin * 2;
+    const usableH = pageH - margin * 2;
+    const imgRatio = canvas.height / canvas.width;
+    let finalW = usableW;
+    let finalH = finalW * imgRatio;
+    // If too tall, constrain by height instead
+    if (finalH > usableH) {
+      finalH = usableH;
+      finalW = finalH / imgRatio;
+    }
+    const x = (pageW - finalW) / 2;
+    const y = (pageH - finalH) / 2;
+    pdf.addImage(imgData, 'PNG', x, y, finalW, finalH);
+    pdf.save(getFilename('pdf'));
+    showToast('PDF downloaded!');
+  } catch (e) {
+    showToast('PDF export failed — try again.');
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// TOAST
+// ══════════════════════════════════════════════════════════════════════════════
+
+let toastTimer = null;
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  if (toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2600);
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════════════════════════════════════
+
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('selInstrument').onchange = populateRangeDropdowns;
+  document.getElementById('selKey').onchange = populateRangeDropdowns;
+  populateRangeDropdowns();
+});
+</script>
+</body>
+</html>
